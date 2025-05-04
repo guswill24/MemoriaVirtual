@@ -29,7 +29,7 @@ export default class World {
         // Permitimos recoger premios tras 2s
         setTimeout(() => {
             this.allowPrizePickup = true
-            console.log('✅ Ahora se pueden recoger premios')
+            //console.log('✅ Ahora se pueden recoger premios')
         }, 2000)
 
         // Cuando todo esté cargado...
@@ -61,6 +61,12 @@ export default class World {
                 onLeft: (pressed) => { this.experience.keyboard.keys.left = pressed },
                 onRight: (pressed) => { this.experience.keyboard.keys.right = pressed }
             })
+
+            // 🔁 Actualizar bloques en cada frame para que caigan
+            this.experience.time.on('tick', () => {
+                this.experience.raycaster?.blockPrefab?.update()
+            })
+
 
 
         })

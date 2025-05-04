@@ -14,25 +14,14 @@ export default class ToyCarLoader {
 
     async loadFromAPI() {
         try {
+            // 🔧 Cargar lista de modelos que requieren Trimesh (precisión física)
             const listRes = await fetch('/config/precisePhysicsModels.json')
             const precisePhysicsModels = await listRes.json()
 
-            let blocks = []
-
-            try {
-                const apiUrl = import.meta.env.VITE_API_URL + '/api/blocks'
-                const res = await fetch(apiUrl)
-
-                if (!res.ok) throw new Error('Conexión fallida')
-
-                blocks = await res.json()
-                console.log('✅ Datos cargados desde la API:', blocks.length)
-            } catch (apiError) {
-                console.warn('⚠️ No se pudo conectar con la API. Cargando desde archivo local...')
-                const localRes = await fetch('/data/threejs_blocks.blocks.json')
-                blocks = await localRes.json()
-                console.log('📦 Datos cargados desde archivo local:', blocks.length)
-            }
+            // ✅ Cargar siempre desde archivo local
+            const localRes = await fetch('/data/threejs_blocks.blocks.json')
+            const blocks = await localRes.json()
+            //console.log('📦 Datos cargados desde archivo local:', blocks.length)
 
             blocks.forEach(block => {
                 if (!block.name) {
@@ -50,38 +39,28 @@ export default class ToyCarLoader {
 
                 const model = glb.scene.clone()
 
-                // 🎯 Manejo de Carteles
+                // 🎯 Cargar imagen a cartel si existe
                 const cube = this.scene.getObjectByName('Cube')
                 if (cube) {
-                    //console.log('✅ Cartel encontrado:', cube.name)
-
-                    // 1) Carga la textura
                     const textureLoader = new THREE.TextureLoader()
                     const texture = textureLoader.load('/textures/ima1.jpg', () => {
-                        // 1) Ajustes de color y filtrado
                         texture.encoding = THREE.sRGBEncoding
                         texture.wrapS = THREE.ClampToEdgeWrapping
                         texture.wrapT = THREE.ClampToEdgeWrapping
                         texture.anisotropy = this.experience.renderer.instance.capabilities.getMaxAnisotropy()
+                        texture.center.set(0.5, 0.5)
+                        texture.rotation = -Math.PI / 2
 
-                        // 2) Centrar el pivote de rotación y girar 90°
-                        texture.center.set(0.5, 0.5)        // mueve el pivote al centro de la imagen
-                        texture.rotation = -Math.PI / 2     // gira -90°, cámbialo a +Math.PI/2 si lo necesitas
-
-                        // 3) Crea un material y aplícalo
                         cube.material = new THREE.MeshBasicMaterial({
                             map: texture,
                             side: THREE.DoubleSide
                         })
                         cube.material.needsUpdate = true
-                        
                     })
-
                 }
 
-                // 🎯 Si es un premio (coin, reward, etc.)
+                // 🎯 Premios
                 if (block.name.startsWith('coin')) {
-                    console.log(`Premio detectado: ${block.name}`)
                     const prize = new Prize({
                         model,
                         position: new THREE.Vector3(block.x, block.y, block.z),
@@ -94,6 +73,7 @@ export default class ToyCarLoader {
 
                 this.scene.add(model)
 
+                // ⚙️ Crear cuerpo físico
                 let shape
                 let position = new THREE.Vector3()
 
@@ -103,19 +83,15 @@ export default class ToyCarLoader {
                         console.warn(`❌ No se pudo crear Trimesh para ${block.name}`)
                         return
                     }
-
-                    // Los modelos Trimesh ya están posicionados correctamente
                     position.set(0, 0, 0)
                 } else {
-                    shape = createBoxShapeFromModel(model, 0.9) // puedes ajustar 0.9 → 0.85 si lo deseas
-
+                    shape = createBoxShapeFromModel(model, 0.9)
                     const bbox = new THREE.Box3().setFromObject(model)
                     const center = new THREE.Vector3()
                     const size = new THREE.Vector3()
                     bbox.getCenter(center)
                     bbox.getSize(size)
-
-                    center.y -= size.y / 2 // apoyar la caja sobre el piso
+                    center.y -= size.y / 2
                     position.copy(center)
                 }
 

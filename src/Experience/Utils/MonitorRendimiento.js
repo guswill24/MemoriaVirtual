@@ -3,7 +3,7 @@ import Stats from 'stats.js'
 export default class MonitorRendimiento {
     constructor(gui) {
         this.stats = new Stats()
-        this.stats.showPanel(0) // 0: FPS | 1: MS | 2: MB (solo Chrome)
+        this.stats.showPanel(0) // 0: FPS | 1: MS | 2: MB
         document.body.appendChild(this.stats.dom)
 
         this.memoryThreshold = 1200 // MB
@@ -12,14 +12,25 @@ export default class MonitorRendimiento {
         this.data = {
             fps: 0,
             jsMemoryMB: 0,
-            alerta: '✔️ Memoria en rango'
+            alerta: '✔️ Memoria en rango',
+            modoEjecucion: 'Normal',         // 🧵 Selector de modo
+            tiempoBloquesMS: 0,              // ⏱️ Medición de carga
+            arquitectura: 'CISC'             // 🧠 Selector arquitectural
         }
 
-        // 👉 Agregar una carpeta propia dentro de la GUI compartida
         const folder = gui.addFolder('📊 Rendimiento')
         folder.add(this.data, 'fps').name('🎯 FPS').listen()
         folder.add(this.data, 'jsMemoryMB').name('📈 Heap JS (MB)').listen()
         this.alertController = folder.add(this.data, 'alerta').name('⚠️ Estado').listen()
+
+        // 🧵 Modo de Ejecución
+        folder.add(this.data, 'modoEjecucion', ['Normal', 'Paralelo']).name('🧵 Modo Ejecución')
+
+        // ⏱️ Tiempo de ejecución de carga
+        folder.add(this.data, 'tiempoBloquesMS').name('⏱️ Tiempo 500 bloques (ms)').listen()
+
+        // 🧠 Simulación de arquitectura
+        folder.add(this.data, 'arquitectura', ['CISC', 'RISC']).name('🧠 Arquitectura')
 
         this.start()
     }
@@ -28,9 +39,10 @@ export default class MonitorRendimiento {
         const loop = () => {
             this.stats.begin()
 
-            // FPS (medición simple desde stats.js)
+            // FPS básico
             this.data.fps = Math.floor(1000 / (this.stats.dom.children[0].textContent || 16.67))
 
+            // Medición de Heap JS (solo en Chrome)
             if (performance && performance.memory) {
                 const heapUsedMB = performance.memory.usedJSHeapSize / 1048576
                 this.data.jsMemoryMB = heapUsedMB.toFixed(2)
@@ -50,5 +62,21 @@ export default class MonitorRendimiento {
         }
 
         loop()
+    }
+
+    /**
+     * Llamar esta función desde la lógica de agregar bloques.
+     * Ejemplo:
+     * monitor.marcarInicio()
+     * ... ejecutar bloque
+     * monitor.marcarFin()
+     */
+    marcarInicio() {
+        this._inicio = performance.now()
+    }
+
+    marcarFin() {
+        const fin = performance.now()
+        this.data.tiempoBloquesMS = (fin - this._inicio).toFixed(2)
     }
 }

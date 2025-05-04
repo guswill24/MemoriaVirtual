@@ -31,7 +31,7 @@ export default class Prize {
         this.scene.add(this.pivot)
 
         // 🪪 Debug
-        console.log(`🎯 Premio en: (${position.x}, ${position.y}, ${position.z})`)
+        //console.log(`🎯 Premio en: (${position.x}, ${position.y}, ${position.z})`)
     }
 
     update(delta) {
